@@ -160,22 +160,17 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
 
     }
 
-    private int[] getHeaderAndNextIndex(String id) {
+    private int getMessageHeaderIndex(String id) {
         //Return the next header, if this is the last header then returns the last index (loading view)
-        int indices[] = {-1, -1};
         for (int i = 0; i < getItemCount(false); i++) {
             if (items.get(i) instanceof MessageHeaderParent) {
                 MessageHeaderParent item = (MessageHeaderParent) items.get(i);
-                if (indices[0] != -1) {
-                    indices[1] = i;
-                    return indices;
-                }
                 if (item.getId().equals(id)) {
-                    indices[0] = i;
+                    return i;
                 }
             }
         }
-        return indices;
+        return -1;
     }
 
     private void setupLists(List<Message> messageList) {
@@ -205,9 +200,8 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
 
     public boolean addMessage(Message message, int messageAndHeadersCount) {
 
-        int[] index = getHeaderAndNextIndex(message.getIdForHolder());
-
-        if (index[0] < 0) { //No messageParent for this one
+        int index = getMessageHeaderIndex(message.getIdForHolder());
+        if (index < 0) { //No messageParent for this one
             MessageHeaderParent messageHeaderParent = new MessageHeaderParent((message.getStream() == null) ? null : message.getStream().getName(), message.getSubject(), message.getIdForHolder());
             messageHeaderParent.setMessageType(message.getType());
             messageHeaderParent.setDisplayRecipent(message.getDisplayRecipient(zulipApp));
@@ -220,10 +214,21 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
             items.add(messageAndHeadersCount + 2, message);
             notifyItemInserted(messageAndHeadersCount + 2);
             return true;
-        } else {
-            int nextHeader = (index[1] != -1) ? index[1] : getItemCount(false);
-            items.add(nextHeader, message);
-            notifyItemInserted(nextHeader);
+        } else { //Add this message comparing the ID's of the existing messages ID's
+            for (int i = index + 1; i <= getItemCount(false); i++) {
+                if (getItem(i) instanceof Message) {
+                    if ((((Message) getItem(i)).getID() > message.getID())) {
+                        items.add(i, message);
+                        notifyItemInserted(i);
+                        return false;
+                    }
+                } else {
+                    items.add(i, message);
+                    notifyItemInserted(i);
+                    return false;
+                }
+
+            }
             return false;
         }
     }

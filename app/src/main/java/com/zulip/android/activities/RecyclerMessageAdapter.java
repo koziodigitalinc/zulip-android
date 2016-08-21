@@ -37,6 +37,7 @@ import com.zulip.android.viewholders.MessageHolder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -175,8 +176,18 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
 
     private void setupLists(List<Message> messageList) {
         int headerParents = 0;
+        LinkedList<Message> messageLinkedList = new LinkedList<>();
         for (int i = 0; i < messageList.size() - 1; i++) {
-            headerParents = (addMessage(messageList.get(i), i + headerParents)) ? headerParents + 1 : headerParents;
+            if (DateUtils.isToday(messageList.get(i).getTimestamp().getTime())) {
+                messageLinkedList.add(messageList.get(i));
+            } else {
+                headerParents = (addMessage(messageList.get(i), i + headerParents)) ? headerParents + 1 : headerParents;
+            }
+        }
+        while (!messageLinkedList.isEmpty()) {
+            Message message = messageLinkedList.poll();
+            addNewMessage(message);
+            messageList.add(message);
         }
         setFooterShowing(false);
         setHeaderShowing(false);

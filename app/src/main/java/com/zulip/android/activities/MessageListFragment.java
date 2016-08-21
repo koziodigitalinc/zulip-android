@@ -10,6 +10,7 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -39,6 +40,7 @@ import org.json.JSONObject;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -332,7 +334,7 @@ public class MessageListFragment extends Fragment implements MessageListener {
 
     public void onMessages(Message[] messages, LoadPosition pos,
                            boolean moreAbove, boolean moreBelow, boolean noFurtherMessages) {
-
+        LinkedList<Message> messageLinkedList = new LinkedList<>();
         if (!initialized) {
             return;
         }
@@ -380,9 +382,13 @@ public class MessageListFragment extends Fragment implements MessageListener {
                 this.adapter.addNewMessage(message);
                 messageList.add(message);
             } else if (pos == LoadPosition.ABOVE || pos == LoadPosition.INITIAL) {
-                headerParents = (this.adapter.addMessage(message, addedCount + headerParents)) ? headerParents + 1 : headerParents;
-                messageList.add(addedCount, message);
-                addedCount++;
+                if (DateUtils.isToday(message.getTimestamp().getTime())) {
+                    messageLinkedList.add(message);
+                } else {
+                    headerParents = (this.adapter.addMessage(message, addedCount + headerParents)) ? headerParents + 1 : headerParents;
+                    messageList.add(addedCount, message);
+                    addedCount++;
+                }
             }
 
             if (message.getID() > lastMessageId) {
@@ -392,6 +398,11 @@ public class MessageListFragment extends Fragment implements MessageListener {
             if (message.getID() < firstMessageId || firstMessageId == -1) {
                 firstMessageId = message.getID();
             }
+        }
+        while (!messageLinkedList.isEmpty()) {
+            Message message = messageLinkedList.poll();
+            this.adapter.addNewMessage(message);
+            messageList.add(message);
         }
 
         if (pos == LoadPosition.ABOVE) {

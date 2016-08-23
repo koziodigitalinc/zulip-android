@@ -1,28 +1,25 @@
 package com.zulip.android.activities;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.Uri;
 import android.support.annotation.ColorInt;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.text.format.DateUtils;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.zulip.android.models.Person;
-import com.zulip.android.models.Stream;
-import com.zulip.android.networking.AsyncPointerUpdate;
-
 import com.squareup.picasso.Picasso;
-import com.zulip.android.util.OnItemClickListener;
 import com.zulip.android.R;
 import com.zulip.android.ZulipApp;
 import com.zulip.android.filters.NarrowFilterPM;
@@ -30,6 +27,10 @@ import com.zulip.android.filters.NarrowFilterStream;
 import com.zulip.android.filters.NarrowListener;
 import com.zulip.android.models.Message;
 import com.zulip.android.models.MessageType;
+import com.zulip.android.models.Person;
+import com.zulip.android.models.Stream;
+import com.zulip.android.networking.AsyncPointerUpdate;
+import com.zulip.android.util.OnItemClickListener;
 import com.zulip.android.util.ZLog;
 import com.zulip.android.viewholders.LoadingHolder;
 import com.zulip.android.viewholders.MessageHeaderParent;
@@ -318,24 +319,41 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
 
                 MessageHolder messageHolder = ((MessageHolder) holder);
                 final Message message = ((Message) items.get(position));
-                message.setValueChangedPromise(new Runnable() {
-                    @Override
-                    public void run() {
-                        onBindViewHolder(holder, position);
-                        message.setValueChangedPromise(null);
-                    }
-                });
+
                 messageHolder.contentView.setText(message.getFormattedContent(zulipApp));
 
+                final String url = message.extractImageUrl(zulipApp);
+                if(url != null) {
+                    messageHolder.contentImageContainer.setVisibility(View.VISIBLE);
+                    Picasso.with(context).load(url)
+                            .into(messageHolder.contentImage);
+
+                    messageHolder.contentImageContainer
+                            .setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    Intent i = new Intent(Intent.ACTION_VIEW);
+                                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    i.setData(Uri.parse(url));
+                                    zulipApp.startActivity(i);
+                                }
+                            });
+                }
+                else {
+                    messageHolder.contentImageContainer.setVisibility(View.GONE);
+                    messageHolder.contentImage.setImageDrawable(null);
+                }
                 if (message.getType() == MessageType.STREAM_MESSAGE) {
                     messageHolder.senderName.setText(message.getSender().getName());
-                    if (!isCurrentThemeNight)
+                    if (!isCurrentThemeNight) {
                         messageHolder.leftBar.setBackgroundColor(message.getStream().getColor());
+                    }
                     messageHolder.messageTile.setBackgroundColor(streamMessageBackground);
                 } else {
                     messageHolder.senderName.setText(message.getSender().getName());
-                    if (!isCurrentThemeNight)
+                    if (!isCurrentThemeNight) {
                         messageHolder.leftBar.setBackgroundColor(privateMessageBackground);
+                    }
                     messageHolder.messageTile.setBackgroundColor(privateMessageBackground);
                 }
 

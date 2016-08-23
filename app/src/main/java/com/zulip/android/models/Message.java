@@ -533,6 +533,26 @@ public class Message {
         return converter.convert();
     }
 
+    public String extractImageUrl(ZulipApp zulipApp) {
+        String match = "<img src=\"";
+        int start = getFormattedContent().indexOf(match);
+
+        if(start == -1){
+            return null;
+        }
+        start += match.length();
+        match = getFormattedContent().substring(start);
+        if(match.indexOf("\"") == -1) {
+            return null;
+        }
+        match = match.substring(0, match.indexOf("\""));
+
+        if(match.indexOf("/") == 0) {
+            return zulipApp.getServerURI().substring(0, zulipApp.getServerURI().indexOf("/api")) + match;
+        }
+        return match;
+    }
+
 //    private static Drawable getDrawable(final String source, final Context context, final Message message) {
 //
 //        Drawable val = message.cachedImages.get(source);

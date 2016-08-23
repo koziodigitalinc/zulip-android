@@ -85,6 +85,8 @@ import com.zulip.android.models.PresenceType;
 import com.zulip.android.R;
 import com.zulip.android.models.Stream;
 import com.zulip.android.networking.AsyncSend;
+import com.zulip.android.util.AnimationHelper;
+import com.zulip.android.util.SwipeRemoveLinearLayout;
 import com.zulip.android.util.ZLog;
 import com.zulip.android.ZulipApp;
 import com.zulip.android.gcm.GcmBroadcastReceiver;
@@ -94,8 +96,12 @@ import com.zulip.android.networking.ZulipAsyncPushTask;
 
 import org.json.JSONObject;
 
+/**
+ * The main Activity responsible for holding the {@link MessageListFragment} which has the list to the
+ * messages
+ * */
 public class ZulipActivity extends AppCompatActivity implements
-        MessageListFragment.Listener, NarrowListener {
+        MessageListFragment.Listener, NarrowListener, SwipeRemoveLinearLayout.leftToRightSwipeListener {
 
     private static final String NARROW = "narrow";
     private static final String PARAMS = "params";
@@ -117,10 +123,10 @@ public class ZulipActivity extends AppCompatActivity implements
     private ActionBarDrawerToggle drawerToggle;
     private ExpandableListView streamsDrawer;
     private static final Interpolator FAST_OUT_SLOW_IN_INTERPOLATOR = new FastOutSlowInInterpolator();
-    private LinearLayout chatBox;
+    private SwipeRemoveLinearLayout chatBox;
     private FloatingActionButton fab;
     private CountDownTimer fabHidder;
-    private boolean hideFABBlocked = false;
+    private boolean isTextFieldFocused = false;
     private static final int HIDE_FAB_AFTER_SEC = 5;
 
     private HashMap<String, Bitmap> gravatars = new HashMap<>();
@@ -131,7 +137,7 @@ public class ZulipActivity extends AppCompatActivity implements
 
     private Toolbar toolbar;
 
-    private MessageListFragment currentList;
+    public MessageListFragment currentList;
     private MessageListFragment narrowedList;
     private MessageListFragment homeList;
 
@@ -155,6 +161,11 @@ public class ZulipActivity extends AppCompatActivity implements
             abortBroadcast();
         }
     };
+
+    @Override
+    public void removeChatBox(boolean animToRight) {
+        AnimationHelper.hideViewX(chatBox, animToRight);
+    }
 
     // Intent Extra constants
     public enum Flag {
@@ -234,8 +245,9 @@ public class ZulipActivity extends AppCompatActivity implements
 
     @Override
     public void recyclerViewScrolled() {
-        if (chatBox.getVisibility() == View.VISIBLE && hideFABBlocked) {
+        if (chatBox.getVisibility() == View.VISIBLE && !isTextFieldFocused) {
             displayChatBox(false);
+            displayFAB(true);
         }
     }
 
@@ -412,7 +424,7 @@ public class ZulipActivity extends AppCompatActivity implements
         View.OnFocusChangeListener focusChangeListener = new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean focus) {
-                hideFABBlocked = focus;
+                isTextFieldFocused = focus;
             }
         };
         messageEt.setOnFocusChangeListener(focusChangeListener);
@@ -490,6 +502,10 @@ public class ZulipActivity extends AppCompatActivity implements
         messageEt.setAdapter(combinedAdapter);
     }
 
+    /**
+     * Returns a cursor for the combinedAdapter used to suggest Emoji when ':' is typed in the {@link #messageEt}
+     * @param emoji A string to search in the existing database
+     */
     private Cursor makeEmojiCursor(CharSequence emoji)
             throws SQLException {
         if (emoji == null) {
@@ -520,13 +536,14 @@ public class ZulipActivity extends AppCompatActivity implements
 
     private void setupFab() {
         fab = (FloatingActionButton) findViewById(R.id.fab);
-        chatBox = (LinearLayout) findViewById(R.id.messageBoxContainer);
+        chatBox = (SwipeRemoveLinearLayout) findViewById(R.id.messageBoxContainer);
+        chatBox.registerToSwipeEvents(this);
         fabHidder = new CountDownTimer(HIDE_FAB_AFTER_SEC * 1000, HIDE_FAB_AFTER_SEC * 1000) {
             public void onTick(long millisUntilFinished) {
             }
 
             public void onFinish() {
-                if (!hideFABBlocked) {
+                if (!isTextFieldFocused) {
                     displayFAB(true);
                     displayChatBox(false);
                 } else {
@@ -537,6 +554,7 @@ public class ZulipActivity extends AppCompatActivity implements
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                currentList.stopRecyclerViewScroll();
                 displayChatBox(true);
                 displayFAB(false);
                 fabHidder.start();
@@ -560,7 +578,7 @@ public class ZulipActivity extends AppCompatActivity implements
         }
     }
 
-    private void hideView(final View view) {
+    public void hideView(final View view) {
         ViewPropertyAnimator animator = view.animate()
                 .translationY((view instanceof AppBarLayout) ? -1 * view.getHeight() : view.getHeight())
                 .setInterpolator(FAST_OUT_SLOW_IN_INTERPOLATOR)
@@ -587,7 +605,7 @@ public class ZulipActivity extends AppCompatActivity implements
         animator.start();
     }
 
-    private void showView(final View view) {
+    public void showView(final View view) {
         ViewPropertyAnimator animator = view.animate()
                 .translationY(0)
                 .setInterpolator(FAST_OUT_SLOW_IN_INTERPOLATOR)
@@ -616,6 +634,9 @@ public class ZulipActivity extends AppCompatActivity implements
         animator.start();
     }
 
+    /**
+     * Setup the streams Drawer which has a {@link ExpandableListView} categorizes the stream and subject
+     */
     private void setupListViewAdapter() {
         ExpandableStreamDrawerAdapter streamsDrawerAdapter = null;
         Callable<Cursor> streamsGenerator = new Callable<Cursor>() {
@@ -718,6 +739,9 @@ public class ZulipActivity extends AppCompatActivity implements
         streamsDrawer.setAdapter(streamsDrawerAdapter);
     }
 
+    /**
+     * Initiates the streams Drawer if the streams in the drawer is 0.
+     */
     public void checkAndSetupStreamsDrawer() {
         try {
             if (streamsDrawer.getAdapter().getCount() != 0) {
@@ -797,6 +821,9 @@ public class ZulipActivity extends AppCompatActivity implements
         sender.execute();
     }
 
+    /**
+     * Disable chatBox and show a loading footer while sending the message.
+     */
     private void sendingMessage(boolean isSending) {
         streamActv.setEnabled(!isSending);
         textView.setEnabled(!isSending);
@@ -812,6 +839,15 @@ public class ZulipActivity extends AppCompatActivity implements
 
     private LinearLayout composeStatus;
 
+    /**
+     * Setup adapter's for the {@link AutoCompleteTextView}
+     *
+     * These adapters are being intialized -
+     *
+     * {@link #streamActvAdapter} Adapter for suggesting all the stream names in this AutoCompleteTextView
+     * {@link #emailActvAdapter} Adapter for suggesting all the person email's in this AutoCompleteTextView
+     * {@link #subjectActvAdapter} Adapter for suggesting all the topic for the stream specified in the {@link #streamActv} in this AutoCompleteTextView
+     */
     private void setUpAdapter() {
         streamActvAdapter = new SimpleCursorAdapter(
                 that, R.layout.stream_tile, null,
@@ -893,6 +929,10 @@ public class ZulipActivity extends AppCompatActivity implements
         sendingMessage(false);
     }
 
+    /**
+     * Creates a cursor to get the streams saved in the database
+     * @param streamName Filter out streams name containing this string
+     */
     private Cursor makeStreamCursor(CharSequence streamName)
             throws SQLException {
         if (streamName == null) {
@@ -911,6 +951,11 @@ public class ZulipActivity extends AppCompatActivity implements
                 .closeableIterator().getRawResults()).getRawCursor();
     }
 
+    /**
+     * Creates a cursor to get the topics in the stream in
+     * @param stream
+     * @param  subject Filter out subject containing this string
+     */
     private Cursor makeSubjectCursor(CharSequence stream, CharSequence subject)
             throws SQLException {
         if (subject == null) {
@@ -937,6 +982,10 @@ public class ZulipActivity extends AppCompatActivity implements
         return results.getRawCursor();
     }
 
+    /**
+     * Creates a cursor to get the E-Mails stored in the database
+     * @param email Filter out emails containing this string
+     */
     private Cursor makePeopleCursor(CharSequence email) throws SQLException {
         if (email == null) {
             email = "";
@@ -986,6 +1035,9 @@ public class ZulipActivity extends AppCompatActivity implements
         messageEt.setError(null);
     }
 
+    /**
+     * Switch from Private to Stream or vice versa in chatBox
+     */
     private void switchView() {
         if (isCurrentModeStream()) { //Person
             togglePrivateStreamBtn.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_action_bullhorn));
@@ -1105,7 +1157,10 @@ public class ZulipActivity extends AppCompatActivity implements
         }
     }
 
-    private void doNarrow(NarrowFilter filter) {
+    /**
+     * This method creates a new Instance of the MessageListFragment and displays it with the filter.
+     */
+    public void doNarrow(NarrowFilter filter) {
         narrowedList = MessageListFragment.newInstance(filter);
         // Push to the back stack if we are not already narrowed
         pushListFragment(narrowedList, NARROW);
@@ -1130,6 +1185,10 @@ public class ZulipActivity extends AppCompatActivity implements
         }
     }
 
+    /**
+     * Fills the chatBox according to the {@link MessageType}
+     * @param openSoftKeyboard If true open's up the SoftKeyboard else not.
+     */
     @Override
     public void onNarrowFillSendBox(Message message, boolean openSoftKeyboard) {
         displayChatBox(true);
@@ -1151,6 +1210,12 @@ public class ZulipActivity extends AppCompatActivity implements
         }
     }
 
+    /**
+     * Fills the chatBox with the stream name and the topic
+     * @param stream Stream name to be filled
+     * @param subject Subject to be filled
+     * @param openSoftKeyboard If true open's the softKeyboard else not
+     */
     public void onNarrowFillSendBoxStream(String stream, String subject, boolean openSoftKeyboard) {
         displayChatBox(true);
         displayFAB(false);
@@ -1199,7 +1264,7 @@ public class ZulipActivity extends AppCompatActivity implements
             final android.support.v7.widget.SearchView searchView = (android.support.v7.widget.SearchView) MenuItemCompat.getActionView(mSearchMenuItem);
             searchView.setSearchableInfo(searchManager.getSearchableInfo(new ComponentName(getApplicationContext(), ZulipActivity.class)));
             searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-            ((EditText) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text)).setHintTextColor(ContextCompat.getColor(this,R.color.colorTextPrimary));
+            ((EditText) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text)).setHintTextColor(ContextCompat.getColor(this, R.color.colorTextPrimary));
             searchView.setOnQueryTextListener(new android.support.v7.widget.SearchView.OnQueryTextListener() {
                 @Override
                 public boolean onQueryTextSubmit(String s) {
@@ -1288,6 +1353,10 @@ public class ZulipActivity extends AppCompatActivity implements
         return true;
     }
 
+    /**
+     * Switches the current Day/Night mode to Night/Day mode
+     * @param nightMode which Mode {@link android.support.v7.app.AppCompatDelegate.NightMode}
+     */
     private void setNightMode(@AppCompatDelegate.NightMode int nightMode) {
         AppCompatDelegate.setDefaultNightMode(nightMode);
 
@@ -1357,7 +1426,7 @@ public class ZulipActivity extends AppCompatActivity implements
 
         // Set up the BroadcastReceiver to trap GCM messages so notifications
         // don't show while in the app
-        IntentFilter filter = new IntentFilter(GcmBroadcastReceiver.BROADCAST);
+        IntentFilter filter = new IntentFilter(GcmBroadcastReceiver.getGCMReceiverAction(getApplicationContext()));
         filter.setPriority(2);
         registerReceiver(onGcmMessage, filter);
 
@@ -1376,6 +1445,9 @@ public class ZulipActivity extends AppCompatActivity implements
         }
     }
 
+    /**
+     * Refresh the current user profile, removes all the tables from the database and reloads them from the server, reset the queue.
+     */
     private void onRefresh() {
         super.onResume();
 

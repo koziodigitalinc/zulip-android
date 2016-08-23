@@ -41,7 +41,19 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-
+/**
+ * An adapter to bind the messages to a RecyclerView.
+ * This has two main ViewTypes {@link MessageHeaderParent.MessageHeaderHolder} and {@link MessageHolder}
+ * Each Message is inserted to its MessageHeader which are distinguished by the {@link Message#getIdForHolder()}
+ * saved in {@link MessageHeaderParent#getId()}
+ *
+ * There are two ways to insert a message in this adapter one {@link RecyclerMessageAdapter#addMessage(Message, int)}
+ * and second one {@link RecyclerMessageAdapter#addNewMessage(Message)}
+ * The first one is used to add old messages from the databases with {@link com.zulip.android.util.MessageListener.LoadPosition#BELOW}
+ * and {@link com.zulip.android.util.MessageListener.LoadPosition#INITIAL}. This is for the threaded view and the messages are added
+ * to the existing messageHeaderParents.
+ * In addNewMessages the messages are loaded in the bottom and new headers are created if it does not matches the last header.
+ */
 public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     public static final int VIEWTYPE_MESSAGE_HEADER = 1;
@@ -147,6 +159,14 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
             }
 
             @Override
+            public MessageHeaderParent getMessageHeaderParentAtPosition(int position) {
+                if (getItem(position) instanceof MessageHeaderParent) {
+                    return (MessageHeaderParent) getItem(position);
+                }
+                return null;
+            }
+
+            @Override
             public void setContextItemSelectedPosition(int adapterPosition) {
                 contextMenuItemSelectedPosition = adapterPosition;
             }
@@ -154,6 +174,10 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         setupLists(messageList);
     }
 
+    /**
+     * Add's a placeHolder value for Header and footer loading with values of 3-{@link #VIEWTYPE_HEADER} and 4-{@link #VIEWTYPE_FOOTER} respectively.
+     * So that for these placeHolder can be created a ViewHolder in {@link #onCreateViewHolder(ViewGroup, int)}
+     */
     private void setupHeaderAndFooterViews() {
         items.add(0, VIEWTYPE_HEADER); //Placeholder for header
         items.add(VIEWTYPE_FOOTER); //Placeholder for footer
@@ -210,6 +234,13 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         }
     }
 
+    /**
+     * Add an old message to the current list and add those messages to the existing messageHeaders if no
+     * messageHeader is found then create a new messageHeader
+     * @param message Message to be added
+     * @param messageAndHeadersCount Count of the (messages + messageHeaderParent) added in the loop from where this function is being called
+     * @return returns true if a new messageHeaderParent is created for this message so as to increment the count by where this function is being called.
+     */
     public boolean addMessage(Message message, int messageAndHeadersCount) {
 
         int index = getMessageHeaderIndex(message.getIdForHolder());
@@ -245,7 +276,11 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         }
     }
 
-
+    /**
+     *  Add a new message to the bottom of the list and create a new messageHeaderParent if last did not match this message
+     *  Stream/subject or private recipients.
+     * @param message Message to be added
+     */
     public void addNewMessage(Message message) {
         MessageHeaderParent item = null;
         for (int i = getItemCount(false) - 1; i > 1; i--) {
@@ -386,6 +421,10 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
             markThisMessageAsRead((Message) getItem(holder.getAdapterPosition()));
     }
 
+    /**
+     * This is called when the Message is bind to the Holder and attached, displayed in the window.
+     * @param message Mark this message read
+     */
     private void markThisMessageAsRead(Message message) {
         try {
             int mID = message.getID();
@@ -456,7 +495,11 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         return items.get(position);
     }
 
-
+    /**
+     * Return the size of the list with including or excluding footer
+     * @param includeFooter true to return the size including footer or false to return size excluding footer.
+     * @return
+     */
     public int getItemCount(boolean includeFooter) {
         if (includeFooter) return getItemCount();
         else return getItemCount() - 1;

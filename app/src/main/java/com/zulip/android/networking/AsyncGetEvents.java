@@ -27,6 +27,14 @@ import com.zulip.android.ZulipApp;
 
 import okhttp3.Response;
 
+/**
+ * A background task which asynchronously fetches the updates from the server.
+ * The run method {@link #run()} which has an infinite loop and keeps fetching the latest updates
+ * and handles the events appropriately.
+ * If the user is not registered to a queue this registers {@link #register()} for a new lastEventId and queueID
+ *
+ * lastEventId {@link ZulipApp#lastEventId} which is used to fetch after this ID events from the server.
+ */
 public class AsyncGetEvents extends Thread {
     private static final String TAG = "AsyncGetEvents";
     private static final String ASYNC_GET_EVENTS = "asyncGetEvents";
@@ -41,10 +49,10 @@ public class AsyncGetEvents extends Thread {
     private int failures = 0;
     private boolean registeredOrGotEventsThisRun;
 
-    public AsyncGetEvents(ZulipActivity humbugActivity) {
+    public AsyncGetEvents(ZulipActivity zulipActivity) {
         super();
-        app = (ZulipApp) humbugActivity.getApplication();
-        activity = humbugActivity;
+        app = (ZulipApp) zulipActivity.getApplication();
+        activity = zulipActivity;
         request = new HTTPRequest(app);
     }
 
@@ -298,6 +306,10 @@ public class AsyncGetEvents extends Thread {
         }
     }
 
+    /**
+     * Add messages to the list {@link com.zulip.android.activities.MessageListFragment} which are already added to the database
+     * @param messages List of messages to be added
+     */
     private void processMessages(final ArrayList<Message> messages) {
         // In task thread
         int lastMessageId = messages.get(messages.size() - 1).getID();

@@ -43,7 +43,10 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-
+/**
+ * This is a Fragment which holds the recyclerView for displaying the messages
+ * initiated and called by {@link ZulipActivity}
+ */
 public class MessageListFragment extends Fragment implements MessageListener {
     private static final int PIXEL_OFFSET_MESSAGE_HEADERS = 24;
     private LinearLayoutManager linearLayoutManager;
@@ -70,7 +73,7 @@ public class MessageListFragment extends Fragment implements MessageListener {
     }
 
     private static final String PARAM_FILTER = "filter";
-    NarrowFilter filter;
+    public NarrowFilter filter;
 
     private Listener mListener;
     private RecyclerView recyclerView;
@@ -437,6 +440,10 @@ public class MessageListFragment extends Fragment implements MessageListener {
         loadingMessages = false;
         // Keep the loading indicator there to indicate that it was not
         // successful
+    }
+
+    public void stopRecyclerViewScroll() {
+        recyclerView.stopScroll();
     }
 
     private void loadMoreMessages(final LoadPosition pos) {

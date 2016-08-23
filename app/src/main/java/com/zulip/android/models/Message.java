@@ -552,45 +552,4 @@ public class Message {
         }
         return match;
     }
-
-//    private static Drawable getDrawable(final String source, final Context context, final Message message) {
-//
-//        Drawable val = message.cachedImages.get(source);
-//        if(val != null) {
-//            message.cachedImages.remove(source);
-//            return val;
-//        }
-//
-//        AsyncTask<Void, Void, Drawable> k = new AsyncTask<Void, Void, Drawable>() {
-//            @Override
-//            protected Drawable doInBackground(Void... voids) {
-//                Bitmap res = null;
-//                try {
-//                    res = Picasso.with(context)
-//                            .load(source)
-//                            .priority(Picasso.Priority.HIGH)
-//                            .get();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                if (res == null) {
-//                    return null;
-//                }
-//                return new BitmapDrawable(context.getResources(), res);
-//            }
-//
-//            @Override
-//            protected void onPostExecute(Drawable drawable) {
-//                super.onPostExecute(drawable);
-//                if(message.promise != null) {
-//                    message.cachedImages.put(source, drawable);
-//                    message.promise.run();
-//                }
-//            }
-//        }.execute();
-//
-//        return null;
-//    }
-
 }

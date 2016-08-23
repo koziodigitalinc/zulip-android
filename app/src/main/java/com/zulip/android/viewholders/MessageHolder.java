@@ -6,7 +6,6 @@ import android.view.ContextMenu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.zulip.android.R;
@@ -22,7 +21,9 @@ public class MessageHolder extends RecyclerView.ViewHolder implements View.OnCli
     public TextView timestamp;
     public TextView contentView;
     public View leftBar;
-    public RelativeLayout messageTile;
+    public View messageTile;
+    public ImageView contentImage;
+    public View contentImageContainer;
     private OnItemClickListener onItemClickListener;
 
     public MessageHolder(final View itemView) {
@@ -32,7 +33,9 @@ public class MessageHolder extends RecyclerView.ViewHolder implements View.OnCli
         timestamp = (TextView) itemView.findViewById(R.id.timestamp);
         contentView = (TextView) itemView.findViewById(R.id.contentView);
         leftBar = itemView.findViewById(R.id.leftBar);
-        messageTile = (RelativeLayout) itemView.findViewById(R.id.messageTile);
+        messageTile = itemView.findViewById(R.id.messageTile);
+        contentImage = (ImageView) itemView.findViewById(R.id.load_image);
+        contentImageContainer = itemView.findViewById(R.id.load_image_container);
         contentView.setOnClickListener(this);
         contentView.setLongClickable(true);
         itemView.setOnCreateContextMenuListener(this);

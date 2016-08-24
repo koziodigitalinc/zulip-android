@@ -64,7 +64,7 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
     private ZulipApp zulipApp;
     private Context context;
     private NarrowListener narrowListener;
-    private static final float HEIGHT_IN_DP = 48;
+    private static final float HEIGHT_IN_DP = 68;
     private
     @ColorInt
     int mDefaultStreamHeaderColor;

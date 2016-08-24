@@ -15,19 +15,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/appBarLayout"
-            android:theme="@style/AppTheme.AppBarOverlay"
-            app:layout_behavior="com.zulip.android.util.RemoveViewsOnScroll">
+            android:theme="@style/AppTheme.AppBarOverlay">
 
-            <include
+            <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar"
-                layout="@layout/toolbar" />
+                layout="@layout/toolbar"
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                app:layout_scrollFlags="scroll|enterAlways"
+                />
 
         </android.support.design.widget.AppBarLayout>
 
         <FrameLayout
             android:id="@+id/list_fragment_container"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
         <com.zulip.android.util.SwipeRemoveLinearLayout
             android:id="@+id/messageBoxContainer"

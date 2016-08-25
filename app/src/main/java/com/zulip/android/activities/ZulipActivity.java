@@ -106,7 +106,7 @@ import retrofit2.Callback;
  * The main Activity responsible for holding the {@link MessageListFragment} which has the list to the
  * messages
  * */
-public class ZulipActivity extends AppCompatActivity implements
+public class ZulipActivity extends BaseActivity implements
         MessageListFragment.Listener, NarrowListener, SwipeRemoveLinearLayout.leftToRightSwipeListener {
 
     private static final String NARROW = "narrow";

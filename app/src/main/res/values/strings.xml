@@ -73,4 +73,6 @@
     <string name="reply_sender">Reply to Sender</string>
     <string name="narrow_stream">Narrow to this stream</string>
     <string name="narrow_topic">Narrow to this topic</string>
+    <string name="toast_login_failed_fetching_backends">Failed to fetch Backends!</string>
+    <string name="login_activity_toast_login_error">Unknown login error.</string>
 </resources>

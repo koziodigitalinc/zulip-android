@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import io.fabric.sdk.android.Fabric;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * Stores the global variables which are frequently used.
@@ -161,6 +162,8 @@ public class ZulipApp extends Application {
                     .client(new OkHttpClient.Builder().readTimeout(60, TimeUnit.SECONDS)
                             .addInterceptor(new ZulipInterceptor())
                             .build())
+                    .addConverterFactory(new ZulipServices.ToStringConverterFactory())
+                    .addConverterFactory(GsonConverterFactory.create())
                     .baseUrl(getServerURI())
                     .build()
                     .create(ZulipServices.class);

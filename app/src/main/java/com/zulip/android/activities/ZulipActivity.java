@@ -85,6 +85,7 @@ import com.zulip.android.models.PresenceType;
 import com.zulip.android.R;
 import com.zulip.android.models.Stream;
 import com.zulip.android.networking.AsyncSend;
+import com.zulip.android.networking.response.UserConfigurationResponse;
 import com.zulip.android.util.AnimationHelper;
 import com.zulip.android.util.SwipeRemoveLinearLayout;
 import com.zulip.android.util.ZLog;
@@ -1440,20 +1441,18 @@ public class ZulipActivity extends AppCompatActivity implements
             narrowedList.onActivityResume();
         }
         startRequests();
-
+        final Handler handler = new Handler();
         ZulipApp.get().getZulipServices()
                 .register()
-                .enqueue(new Callback<ResponseBody>() {
+                .enqueue(new Callback<UserConfigurationResponse>() {
                     @Override
-                    public void onResponse(Call<ResponseBody> call, retrofit2.Response<ResponseBody> response) {
+                    public void onResponse(Call<UserConfigurationResponse> call, retrofit2.Response<UserConfigurationResponse> response) {
                         String k = "";
-                        String k2 = "";
                     }
 
                     @Override
-                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    public void onFailure(Call<UserConfigurationResponse> call, Throwable t) {
                         String k = "";
-                        String k2 = "";
                     }
                 });
     }

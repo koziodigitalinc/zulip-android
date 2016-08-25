@@ -1,29 +1,33 @@
 package com.zulip.android.networking;
 
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.concurrent.Callable;
+import android.os.SystemClock;
+import android.util.Log;
+
+import com.j256.ormlite.dao.RuntimeExceptionDao;
+import com.j256.ormlite.misc.TransactionManager;
+import com.zulip.android.ZulipApp;
+import com.zulip.android.activities.ZulipActivity;
+import com.zulip.android.models.Message;
+import com.zulip.android.models.MessageRange;
+import com.zulip.android.models.Person;
+import com.zulip.android.models.Stream;
+import com.zulip.android.models.updated.ZulipStream;
+import com.zulip.android.models.updated.ZulipUser;
+import com.zulip.android.networking.response.UserConfigurationResponse;
+import com.zulip.android.util.ZLog;
 
 import org.apache.commons.lang.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.os.SystemClock;
-import android.util.Log;
-
-import com.j256.ormlite.dao.RuntimeExceptionDao;
-import com.j256.ormlite.misc.TransactionManager;
-import com.zulip.android.models.Message;
-import com.zulip.android.models.MessageRange;
-import com.zulip.android.models.Person;
-import com.zulip.android.models.Stream;
-import com.zulip.android.util.ZLog;
-import com.zulip.android.activities.ZulipActivity;
-import com.zulip.android.ZulipApp;
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 import okhttp3.Response;
 
@@ -84,27 +88,82 @@ public class AsyncGetEvents extends Thread {
      * Registers for a new event queue with the Zulip API
      */
     private void register() throws JSONException, IOException {
-        request.setProperty("apply_markdown", "true");
-
-        StopWatch watch = new StopWatch();
-        watch.start();
-        request.setMethodAndUrl("POST", "v1/register");
-        String responseData = request.execute().body().string();
-        watch.stop();
-        Log.i("perf", "net: v1/register: " + watch.toString());
-
-        watch.reset();
-        watch.start();
-        JSONObject response = new JSONObject(responseData);
-        watch.stop();
-        Log.i("perf", "json: v1/register: " + watch.toString());
-
-        registeredOrGotEventsThisRun = true;
-        app.setEventQueueId(response.getString("queue_id"));
-        app.setLastEventId(response.getInt("last_event_id"));
-
-        processRegister(response);
+        retrofit2.Response<UserConfigurationResponse> response = app.getZulipServices()
+                .register(true)
+                .execute();
+        if(response.isSuccessful()) {
+            UserConfigurationResponse res = response.body();
+            app.setEventQueueId(res.getQueueId());
+            app.setLastEventId(res.getLastEventId());
+            app.setPointer(res.getPointer());
+            app.setMaxMessageId(res.getMaxMessageId());
+            registeredOrGotEventsThisRun = true;
+            processRegister(res);
+        }
     }
+
+    private void processRegister(final UserConfigurationResponse response) {
+        // In task thread
+        try {
+
+            TransactionManager.callInTransaction(app.getDatabaseHelper()
+                    .getConnectionSource(), new Callable<Void>() {
+                public Void call() throws Exception {
+
+                    // Get subscriptions
+                    List<ZulipStream> subscriptions = response.getSubscriptions();
+
+                    //todo
+                    app.addToMutedTopics(null);
+
+                    RuntimeExceptionDao<Stream, Object> streamDao = app
+                            .getDao(Stream.class);
+                    Log.i("stream", "" + subscriptions.size() + " streams");
+
+                    // Mark all existing subscriptions as not subscribed
+                    streamDao.updateBuilder().updateColumnValue(
+                            Stream.SUBSCRIBED_FIELD, false);
+
+                    for (int i = 0; i < subscriptions.size(); i++) {
+                        Stream stream = new Stream(subscriptions.get(i), app);
+                        stream.setSubscribed(true);
+                        streamDao.createOrUpdate(stream);
+                    }
+
+                    // Get people
+                    List<ZulipUser> people = response.getRealmUsers();
+
+                    RuntimeExceptionDao<Person, Object> personDao = app
+                            .getDao(Person.class);
+
+                    // Mark all existing people as inactive
+                    personDao.updateBuilder().updateColumnValue(
+                            Person.ISACTIVE_FIELD, false);
+
+                    for (int i = 0; i < people.size(); i++) {
+                        Person person = Person.getFromOther(app,
+                                people.get(i));
+                        person.setActive(true);
+                        personDao.createOrUpdate(person);
+                    }
+                    return null;
+                }
+            });
+
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    that.activity.getPeopleAdapter().refresh();
+                    activity.onReadyToDisplay(true);
+                    activity.checkAndSetupStreamsDrawer();
+                }
+            });
+        }
+        catch (SQLException e) {
+            ZLog.logException(e);
+        }
+    }
+
 
     public void run() {
         try {
@@ -180,82 +239,6 @@ public class AsyncGetEvents extends Thread {
             ZLog.logException(e);
         }
     }
-
-    private void processRegister(final JSONObject response) {
-        // In task thread
-        try {
-            app.setPointer(response.getInt(POINTER));
-            app.setMaxMessageId(response.getInt("max_message_id"));
-
-            StopWatch watch = new StopWatch();
-            watch.start();
-            Message.trim(5000, this.app);
-            watch.stop();
-            Log.i("perf", "trim: " + watch.toString());
-
-            watch.reset();
-            watch.start();
-            TransactionManager.callInTransaction(app.getDatabaseHelper()
-                    .getConnectionSource(), new Callable<Void>() {
-                public Void call() throws Exception {
-
-                    // Get subscriptions
-                    JSONArray subscriptions = response
-                            .getJSONArray("subscriptions");
-                    JSONObject jsonObject = new JSONObject(response.toString());
-                    JSONArray mutedTopics = jsonObject.getJSONArray("muted_topics");
-                    app.addToMutedTopics(mutedTopics);
-                    RuntimeExceptionDao<Stream, Object> streamDao = app
-                            .getDao(Stream.class);
-                    Log.i("stream", "" + subscriptions.length() + " streams");
-
-                    // Mark all existing subscriptions as not subscribed
-                    streamDao.updateBuilder().updateColumnValue(
-                            Stream.SUBSCRIBED_FIELD, false);
-
-                    for (int i = 0; i < subscriptions.length(); i++) {
-                        Stream stream = Stream.getFromJSON(app,
-                                subscriptions.getJSONObject(i));
-                        stream.setSubscribed(true);
-                        streamDao.createOrUpdate(stream);
-                    }
-
-                    // Get people
-                    JSONArray people = response.getJSONArray("realm_users");
-                    RuntimeExceptionDao<Person, Object> personDao = app
-                            .getDao(Person.class);
-
-                    // Mark all existing people as inactive
-                    personDao.updateBuilder().updateColumnValue(
-                            Person.ISACTIVE_FIELD, false);
-
-                    for (int i = 0; i < people.length(); i++) {
-                        Person person = Person.getFromJSON(app,
-                                people.getJSONObject(i));
-                        person.setActive(true);
-                        personDao.createOrUpdate(person);
-                    }
-                    return null;
-                }
-            });
-            watch.stop();
-            Log.i("perf", "DB people and streams: " + watch.toString());
-
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    that.activity.getPeopleAdapter().refresh();
-                    activity.onReadyToDisplay(true);
-                    activity.checkAndSetupStreamsDrawer();
-                }
-            });
-        } catch (JSONException e) {
-            ZLog.logException(e);
-        } catch (SQLException e) {
-            ZLog.logException(e);
-        }
-    }
-
 
     /**
      * Handles any event returned by the server that we care about.

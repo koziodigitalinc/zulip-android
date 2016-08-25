@@ -1,22 +1,23 @@
 package com.zulip.android.models;
 
-import java.sql.SQLException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.stmt.SelectArg;
 import com.j256.ormlite.table.DatabaseTable;
 import com.zulip.android.ZulipApp;
+import com.zulip.android.models.updated.ZulipUser;
+
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @DatabaseTable(tableName = "people")
 public class Person {
@@ -190,7 +191,20 @@ public class Person {
         // It would be nice if the server gave us avatarURL here, but it doesn't
     }
 
-    public static Person getFromJSON(ZulipApp app, JSONObject jPerson)
+    public static Person getFromOther(ZulipApp app, ZulipUser user) {
+
+        Person person = getByEmail(app, user.getEmail());
+        if(person == null) {
+            person = new Person();
+        }
+
+        person.setName(user.getFullName());
+        person.isBot = (user.isIsBot());
+        person.setEmail(user.getEmail());
+        return person;
+    }
+
+    public static Person getFromOther(ZulipApp app, JSONObject jPerson)
             throws JSONException {
         String email = jPerson.getString("email");
         Person person = getByEmail(app, email);

@@ -242,13 +242,15 @@ public class ZulipApp extends Application {
     public void addToMutedTopics(JSONArray jsonArray) {
         Stream stream;
 
-        for (int i = 0; i < jsonArray.length(); i++) {
-            try {
-                JSONArray mutedTopic = jsonArray.getJSONArray(i);
-                stream = Stream.getByName(this, mutedTopic.get(0).toString());
-                mutedTopics.add(stream.getId() + mutedTopic.get(1).toString());
-            } catch (JSONException e) {
-                Log.e("JSONException", "JSON Is not correct", e);
+        if(jsonArray != null) {
+            for (int i = 0; i < jsonArray.length(); i++) {
+                try {
+                    JSONArray mutedTopic = jsonArray.getJSONArray(i);
+                    stream = Stream.getByName(this, mutedTopic.get(0).toString());
+                    mutedTopics.add(stream.getId() + mutedTopic.get(1).toString());
+                } catch (JSONException e) {
+                    Log.e("JSONException", "JSON Is not correct", e);
+                }
             }
         }
         SharedPreferences.Editor editor = settings.edit();

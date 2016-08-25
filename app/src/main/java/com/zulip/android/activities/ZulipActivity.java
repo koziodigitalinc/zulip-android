@@ -130,7 +130,7 @@ public class ZulipActivity extends BaseActivity implements
     private ExpandableListView streamsDrawer;
     private static final Interpolator FAST_OUT_SLOW_IN_INTERPOLATOR = new FastOutSlowInInterpolator();
     private SwipeRemoveLinearLayout chatBox;
-    private FloatingActionButton fab;
+    FloatingActionButton fab;
     private CountDownTimer fabHidder;
     private boolean isTextFieldFocused = false;
     private static final int HIDE_FAB_AFTER_SEC = 5;
@@ -1443,7 +1443,7 @@ public class ZulipActivity extends BaseActivity implements
         startRequests();
         final Handler handler = new Handler();
         ZulipApp.get().getZulipServices()
-                .register()
+                .register(true)
                 .enqueue(new Callback<UserConfigurationResponse>() {
                     @Override
                     public void onResponse(Call<UserConfigurationResponse> call, retrofit2.Response<UserConfigurationResponse> response) {

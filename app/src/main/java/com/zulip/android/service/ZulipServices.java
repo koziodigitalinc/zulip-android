@@ -17,8 +17,9 @@ import retrofit2.http.PUT;
 
 public interface ZulipServices {
 
+    @FormUrlEncoded
     @POST("v1/register")
-    Call<UserConfigurationResponse> register();
+    Call<UserConfigurationResponse> register(@Field("apply_markdown") boolean applyMarkdown);
 
     @FormUrlEncoded
     @PUT("v1/users/me/pointer")

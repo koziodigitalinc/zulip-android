@@ -1,12 +1,5 @@
 package com.zulip.android.models;
 
-import java.sql.SQLException;
-
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.graphics.Color;
 import android.util.Log;
 
@@ -18,6 +11,14 @@ import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.stmt.SelectArg;
 import com.j256.ormlite.table.DatabaseTable;
 import com.zulip.android.ZulipApp;
+import com.zulip.android.models.updated.ZulipStream;
+
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.sql.SQLException;
 
 @DatabaseTable(tableName = "streams")
 public class Stream {
@@ -52,6 +53,14 @@ public class Stream {
      */
     public Stream() {
         this.subscribed = false;
+    }
+
+    public Stream(ZulipStream zulipStream, ZulipApp app) {
+        Stream stream = getByName(app, zulipStream.getName());
+        color = parseColor(zulipStream.getColor());
+        inHomeView = zulipStream.isInHomeView();
+        inviteOnly = zulipStream.isInviteOnly();
+        app.getDao(Stream.class).update(stream);
     }
 
     /**

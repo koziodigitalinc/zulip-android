@@ -19,10 +19,8 @@ import com.zulip.android.models.Message;
 import com.zulip.android.models.Person;
 import com.zulip.android.models.Presence;
 import com.zulip.android.models.Stream;
-import com.zulip.android.networking.AsyncPointerUpdate;
 import com.zulip.android.networking.AsyncUnreadMessagesUpdate;
 import com.zulip.android.networking.ZulipInterceptor;
-import com.zulip.android.networking.requests.PointerBody;
 import com.zulip.android.service.ZulipServices;
 import com.zulip.android.util.ZLog;
 
@@ -416,30 +414,19 @@ public class ZulipApp extends Application {
         return mutedTopics.contains(id + subject);
     }
 
-    public void syncPointer(int mID) {
-        setPointer(mID);
+    public void syncPointer(final int mID) {
 
-        new AsyncPointerUpdate(this)
-                .execute(mID);
-
-        getZulipServices().updatePointer(new PointerBody(Integer.toString(mID)))
+        getZulipServices().updatePointer(Integer.toString(mID))
         .enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                String k = "";
+                setPointer(mID);
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                String k = "";
+                //do nothing.. don't want to mis-update the pointer.
             }
         });
-
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                String k ="";
-            }
-        }, 3_000);
     }
 }

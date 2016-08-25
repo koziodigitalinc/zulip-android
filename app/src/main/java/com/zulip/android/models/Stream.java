@@ -60,6 +60,8 @@ public class Stream {
         color = parseColor(zulipStream.getColor());
         inHomeView = zulipStream.isInHomeView();
         inviteOnly = zulipStream.isInviteOnly();
+        name = zulipStream.getName();
+        id = zulipStream.getStreamId();
         app.getDao(Stream.class).update(stream);
     }
 

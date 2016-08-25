@@ -9,7 +9,8 @@
         android:layout_height="fill_parent"
         android:background="@color/listBackground"
         android:fadeScrollbars="false"
-        android:scrollbars="vertical" />
+        android:scrollbars="vertical"
+        android:scrollbarStyle="insideOverlay"/>
 
     <TextView
         android:id="@+id/emptyList"

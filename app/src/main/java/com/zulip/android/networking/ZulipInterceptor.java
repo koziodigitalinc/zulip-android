@@ -32,6 +32,8 @@ public class ZulipInterceptor implements Interceptor {
             requestBuilder.addHeader("Authorization", "Basic " + Base64.encodeToString(authstr.getBytes(), Base64.NO_WRAP));
         }
 
-        return chain.proceed(requestBuilder.build());
+        Request request = requestBuilder.build();
+        ZulipApp.get().badRequest = request;
+        return chain.proceed(request);
     }
 }

@@ -10,19 +10,14 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.text.format.DateUtils;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.zulip.android.models.Person;
-import com.zulip.android.models.Stream;
-import com.zulip.android.networking.AsyncPointerUpdate;
-
 import com.squareup.picasso.Picasso;
-import com.zulip.android.util.OnItemClickListener;
 import com.zulip.android.R;
 import com.zulip.android.ZulipApp;
 import com.zulip.android.filters.NarrowFilterPM;
@@ -30,6 +25,9 @@ import com.zulip.android.filters.NarrowFilterStream;
 import com.zulip.android.filters.NarrowListener;
 import com.zulip.android.models.Message;
 import com.zulip.android.models.MessageType;
+import com.zulip.android.models.Person;
+import com.zulip.android.models.Stream;
+import com.zulip.android.util.OnItemClickListener;
 import com.zulip.android.util.ZLog;
 import com.zulip.android.viewholders.LoadingHolder;
 import com.zulip.android.viewholders.MessageHeaderParent;
@@ -136,8 +134,7 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
                         try {
                             int mID = msg.getID();
                             if (zulipApp.getPointer() < mID) {
-                                (new AsyncPointerUpdate(zulipApp)).execute(mID);
-                                zulipApp.setPointer(mID);
+                                zulipApp.syncPointer(mID);
                             }
                         } catch (NullPointerException e) {
                             ZLog.logException(e);
@@ -388,8 +385,7 @@ public class RecyclerMessageAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         try {
             int mID = message.getID();
             if (!startedFromFilter && zulipApp.getPointer() < mID) {
-                (new AsyncPointerUpdate(zulipApp)).execute(mID);
-                zulipApp.setPointer(mID);
+                zulipApp.syncPointer(mID);
             }
             zulipApp.markMessageAsRead(message);
         } catch (NullPointerException e) {

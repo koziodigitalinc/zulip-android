@@ -107,7 +107,7 @@ public class UserConfigurationResponse {
     private List<ZulipStream> subscriptions;
 
     @SerializedName("streams")
-    private List<List<ZulipStream>> streams;
+    private List<ZulipStream> streams;
 
     @SerializedName("realm_filters")
     private List<List<String>> realmFilters;
@@ -216,7 +216,7 @@ public class UserConfigurationResponse {
         return neverSubscribed;
     }
 
-    public List<List<ZulipStream>> getRealmDefaultStreams() {
+    public List<ZulipStream> getRealmDefaultStreams() {
         return realmDefaultStreams;
     }
 
@@ -228,7 +228,7 @@ public class UserConfigurationResponse {
         return subscriptions;
     }
 
-    public List<List<ZulipStream>> getStreams() {
+    public List<ZulipStream> getStreams() {
         return streams;
     }
 

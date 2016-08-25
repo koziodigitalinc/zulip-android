@@ -19,8 +19,10 @@ import com.zulip.android.models.Message;
 import com.zulip.android.models.Person;
 import com.zulip.android.models.Presence;
 import com.zulip.android.models.Stream;
+import com.zulip.android.networking.AsyncPointerUpdate;
 import com.zulip.android.networking.AsyncUnreadMessagesUpdate;
 import com.zulip.android.networking.ZulipInterceptor;
+import com.zulip.android.networking.requests.PointerBody;
 import com.zulip.android.service.ZulipServices;
 import com.zulip.android.util.ZLog;
 
@@ -40,6 +42,12 @@ import java.util.concurrent.TimeUnit;
 
 import io.fabric.sdk.android.Fabric;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.ResponseBody;
+import okhttp3.logging.HttpLoggingInterceptor;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -66,6 +74,9 @@ public class ZulipApp extends Application {
     private Set<String> mutedTopics;
     private static final String MUTED_TOPIC_KEY = "mutedTopics";
     private ZulipServices zulipServices;
+
+    public Request goodRequest;
+    public Request badRequest;
 
     /**
      * Handler to manage batching of unread messages
@@ -158,11 +169,14 @@ public class ZulipApp extends Application {
 
     public ZulipServices getZulipServices() {
         if(zulipServices == null) {
+            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+            logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
+
             zulipServices = new Retrofit.Builder()
                     .client(new OkHttpClient.Builder().readTimeout(60, TimeUnit.SECONDS)
                             .addInterceptor(new ZulipInterceptor())
+                            .addInterceptor(logging)
                             .build())
-                    .addConverterFactory(new ZulipServices.ToStringConverterFactory())
                     .addConverterFactory(GsonConverterFactory.create())
                     .baseUrl(getServerURI())
                     .build()
@@ -400,5 +414,32 @@ public class ZulipApp extends Application {
 
     public boolean isTopicMute(int id, String subject) {
         return mutedTopics.contains(id + subject);
+    }
+
+    public void syncPointer(int mID) {
+        setPointer(mID);
+
+        new AsyncPointerUpdate(this)
+                .execute(mID);
+
+        getZulipServices().updatePointer(new PointerBody(Integer.toString(mID)))
+        .enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                String k = "";
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                String k = "";
+            }
+        });
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                String k ="";
+            }
+        }, 3_000);
     }
 }

@@ -491,7 +491,7 @@ public class MessageListFragment extends Fragment implements MessageListener {
         return lastMessageId == app.getMaxMessageId();
     }
 
-    private void selectMessage(final Message message) {
+    public void selectMessage(final Message message) {
         recyclerView.scrollToPosition(adapter.getItemIndex(message));
     }
 

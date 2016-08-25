@@ -1076,8 +1076,7 @@ public class ZulipActivity extends AppCompatActivity implements
     public void onBackPressed() {
         if (narrowedList != null) {
             narrowedList = null;
-            getSupportFragmentManager().popBackStack(NARROW,
-                    FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            getSupportFragmentManager().popBackStack(NARROW, 0);
         } else {
             super.onBackPressed();
         }
@@ -1162,8 +1161,9 @@ public class ZulipActivity extends AppCompatActivity implements
      */
     public void doNarrow(NarrowFilter filter) {
         narrowedList = MessageListFragment.newInstance(filter);
-        // Push to the back stack if we are not already narrowed
-        pushListFragment(narrowedList, NARROW);
+        // Push to the back stack if we are not alread
+        //fix error for navigating to message
+        this.narrowedList.selectMessage(SELECTEDMESSAGE);
         narrowedList.onReadyToDisplay(true);
     }
 

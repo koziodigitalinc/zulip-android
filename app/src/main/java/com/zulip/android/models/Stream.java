@@ -34,7 +34,7 @@ public class Stream {
 
 
     @SerializedName("stream_id")
-    @DatabaseField(columnName = ID_FIELD, generatedId = true)
+    @DatabaseField(columnName = ID_FIELD, id = true)
     private int id;
 
     @SerializedName("description")

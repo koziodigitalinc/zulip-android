@@ -136,6 +136,10 @@ public class Person {
                 .toHashCode();
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     private static Person getByEmail(ZulipApp app, String email) {
         try {
             Dao<Person, Integer> dao = app.getDatabaseHelper().getDao(

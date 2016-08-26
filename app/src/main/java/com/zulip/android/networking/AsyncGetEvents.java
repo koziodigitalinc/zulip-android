@@ -25,7 +25,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 import okhttp3.Response;
@@ -127,12 +126,7 @@ public class AsyncGetEvents extends Thread {
                         Stream stream = subscriptions.get(i);
                         stream.getParsedColor();
                         stream.setSubscribed(true);
-                        try {
-                            streamDao.createOrUpdate(stream);
-                        }
-                        catch(Exception e) {
-                            String kz = "";
-                        }
+                        streamDao.createOrUpdate(stream);
                     }
 
                     // Get people
@@ -145,20 +139,12 @@ public class AsyncGetEvents extends Thread {
                     personDao.updateBuilder().updateColumnValue(
                             Person.ISACTIVE_FIELD, false);
 
-                    Map<String, Person> map = new HashMap<>(people.size());
+
                     for (int i = 0; i < people.size(); i++) {
-                        if(map.get(people.get(i).getEmail()) != null) {
-                            String k = "";
-                        }
-                        map.put(people.get(i).getEmail(), people.get(i));
+
                         Person person = people.get(i);
                         person.setActive(true);
-                        try {
-                            personDao.createOrUpdate(person);
-                        }
-                        catch(Exception e) {
-                            String zk = "";
-                        }
+                        personDao.createOrUpdate(person);
                     }
                     return null;
                 }

@@ -10,6 +10,11 @@ import android.os.Handler;
 import android.util.Log;
 
 import com.crashlytics.android.Crashlytics;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.j256.ormlite.misc.TransactionManager;
@@ -21,6 +26,7 @@ import com.zulip.android.models.Presence;
 import com.zulip.android.models.Stream;
 import com.zulip.android.networking.AsyncUnreadMessagesUpdate;
 import com.zulip.android.networking.ZulipInterceptor;
+import com.zulip.android.networking.response.UserConfigurationResponse;
 import com.zulip.android.service.ZulipServices;
 import com.zulip.android.util.ZLog;
 
@@ -175,12 +181,46 @@ public class ZulipApp extends Application {
                             .addInterceptor(new ZulipInterceptor())
                             .addInterceptor(logging)
                             .build())
-                    .addConverterFactory(GsonConverterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create(buildGson()))
                     .baseUrl(getServerURI())
                     .build()
                     .create(ZulipServices.class);
         }
         return zulipServices;
+    }
+
+    private Gson buildGson() {
+        return new GsonBuilder()
+                .registerTypeAdapter(UserConfigurationResponse.class, new TypeAdapter<UserConfigurationResponse>() {
+                    final Gson gson = new Gson();
+
+                    @Override
+                    public void write(JsonWriter out, UserConfigurationResponse value) throws IOException {
+                        gson.toJson(gson.toJsonTree(value), out);
+                    }
+
+                    @Override
+                    public UserConfigurationResponse read(JsonReader in) throws IOException {
+                        UserConfigurationResponse res = gson.fromJson(in, UserConfigurationResponse.class);
+
+                        RuntimeExceptionDao<Person, Object> personDao = ZulipApp.this.getDao(Person.class);
+                        for (int i = 0; i < res.getRealmUsers().size(); i++) {
+
+                            Person currentPerson = res.getRealmUsers().get(i);
+                            Person foundPerson = null;
+                            try {
+                                foundPerson = personDao.queryBuilder().where().eq(Person.EMAIL_FIELD, currentPerson.getEmail()).queryForFirst();
+                                if(foundPerson != null) {
+                                    currentPerson.setId(foundPerson.getId());
+                                }
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        return res;
+                    }
+                })
+                .create();
     }
 
     /**

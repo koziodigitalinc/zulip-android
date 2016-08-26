@@ -27,6 +27,7 @@ public class Person {
     public static final String ISBOT_FIELD = "isBot";
     public static final String ISACTIVE_FIELD = "isActive";
 
+    @SerializedName("IGNORE_MASK")
     @DatabaseField(columnName = ID_FIELD, generatedId = true)
     protected int id;
 
@@ -151,8 +152,16 @@ public class Person {
 
     private static Person getByEmail(ZulipApp app, String email) {
         try {
-            Dao<Person, Integer> dao = app.getDatabaseHelper().getDao(
-                    Person.class);
+            return getByEmail(app.getDatabaseHelper().getDao(
+                    Person.class), email);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static Person getByEmail(Dao<Person, ?> dao, String email) {
+        try {
             return dao.queryBuilder().where()
                     .eq(Person.EMAIL_FIELD, new SelectArg(email.toLowerCase()))
                     .queryForFirst();

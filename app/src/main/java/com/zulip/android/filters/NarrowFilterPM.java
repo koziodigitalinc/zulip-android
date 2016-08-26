@@ -67,7 +67,7 @@ public class NarrowFilterPM implements NarrowFilter {
 
     @Override
     public boolean matches(Message msg) {
-        return msg.getType() == MessageType.PRIVATE_MESSAGE && msg.getRawRecipients().equals(recipientString);
+        return msg.getType() == MessageType.PRIVATE_MESSAGE;
     }
 
     @Override
@@ -107,5 +107,14 @@ public class NarrowFilterPM implements NarrowFilter {
         return (new JSONArray()).put(
                 new JSONArray(Arrays.asList("pm-with",
                         TextUtils.join(",", emails)))).toString();
+    }
+
+    @Override
+    public String toString() {
+        try {
+            return getJsonFilter();
+        } catch (JSONException e) {
+            return null;
+        }
     }
 }

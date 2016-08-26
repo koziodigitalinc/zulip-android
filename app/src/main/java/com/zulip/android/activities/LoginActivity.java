@@ -26,6 +26,7 @@ import com.zulip.android.R;
 import com.zulip.android.ZulipApp;
 import com.zulip.android.networking.AsyncDevGetEmails;
 import com.zulip.android.networking.ZulipAsyncPushTask;
+import com.zulip.android.networking.ZulipAsyncPushTask.AsyncTaskCompleteListener;
 import com.zulip.android.networking.response.LoginResponse;
 import com.zulip.android.networking.response.ZulipBackendResponse;
 import com.zulip.android.networking.util.DefaultCallback;
@@ -359,9 +360,10 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener,
                 }
                 connectionProgressDialog.show();
                 String username = mUserName.getText().toString();
+                String password = mPassword.getText().toString();
                 getApp().setEmail(username);
                 getServices()
-                        .login(username, mPassword.getText().toString())
+                        .login(username, password)
                         .enqueue(new DefaultCallback<LoginResponse>() {
 
                             @Override

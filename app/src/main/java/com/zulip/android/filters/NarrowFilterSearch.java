@@ -48,7 +48,8 @@ public class NarrowFilterSearch implements NarrowFilter {
 
     @Override
     public boolean matches(Message msg) {
-        return msg.getContent().toLowerCase().contains(query.toLowerCase());
+        //api matching for us
+        return true;
     }
 
     @Override

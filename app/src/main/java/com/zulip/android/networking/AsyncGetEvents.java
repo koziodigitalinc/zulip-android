@@ -11,8 +11,6 @@ import com.zulip.android.models.Message;
 import com.zulip.android.models.MessageRange;
 import com.zulip.android.models.Person;
 import com.zulip.android.models.Stream;
-import com.zulip.android.models.updated.ZulipStream;
-import com.zulip.android.models.updated.ZulipUser;
 import com.zulip.android.networking.response.UserConfigurationResponse;
 import com.zulip.android.util.ZLog;
 
@@ -27,6 +25,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import okhttp3.Response;
@@ -111,7 +110,7 @@ public class AsyncGetEvents extends Thread {
                 public Void call() throws Exception {
 
                     // Get subscriptions
-                    List<ZulipStream> subscriptions = response.getSubscriptions();
+                    List<Stream> subscriptions = response.getSubscriptions();
 
                     //todo
                     app.addToMutedTopics(null);
@@ -125,13 +124,19 @@ public class AsyncGetEvents extends Thread {
                             Stream.SUBSCRIBED_FIELD, false);
 
                     for (int i = 0; i < subscriptions.size(); i++) {
-                        Stream stream = new Stream(subscriptions.get(i), app);
+                        Stream stream = subscriptions.get(i);
+                        stream.getParsedColor();
                         stream.setSubscribed(true);
-                        streamDao.createOrUpdate(stream);
+                        try {
+                            streamDao.createOrUpdate(stream);
+                        }
+                        catch(Exception e) {
+                            String kz = "";
+                        }
                     }
 
                     // Get people
-                    List<ZulipUser> people = response.getRealmUsers();
+                    List<Person> people = response.getRealmUsers();
 
                     RuntimeExceptionDao<Person, Object> personDao = app
                             .getDao(Person.class);
@@ -140,11 +145,20 @@ public class AsyncGetEvents extends Thread {
                     personDao.updateBuilder().updateColumnValue(
                             Person.ISACTIVE_FIELD, false);
 
+                    Map<String, Person> map = new HashMap<>(people.size());
                     for (int i = 0; i < people.size(); i++) {
-                        Person person = Person.getFromOther(app,
-                                people.get(i));
+                        if(map.get(people.get(i).getEmail()) != null) {
+                            String k = "";
+                        }
+                        map.put(people.get(i).getEmail(), people.get(i));
+                        Person person = people.get(i);
                         person.setActive(true);
-                        personDao.createOrUpdate(person);
+                        try {
+                            personDao.createOrUpdate(person);
+                        }
+                        catch(Exception e) {
+                            String zk = "";
+                        }
                     }
                     return null;
                 }

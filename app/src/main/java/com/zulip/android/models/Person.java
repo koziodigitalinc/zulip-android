@@ -51,6 +51,15 @@ public class Person {
     @SerializedName("is_admin")
     private boolean isAdmin;
 
+    @SerializedName("domain")
+    private String domain;
+
+    @SerializedName("short_name")
+    private String shortName;
+
+    @SerializedName("is_mirror_dummy")
+    private boolean isMirrorDummy;
+
     public Person(String name, String email) {
         this.setName(name);
         this.setEmail(email);

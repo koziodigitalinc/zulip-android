@@ -84,7 +84,7 @@ public class UserConfigurationResponse {
 
     //todo
     @SerializedName("muted_topics")
-    private List<?> mutedTopics;
+    private List<List<String>> mutedTopics;
 
     //todo
     @SerializedName("alert_words")
@@ -200,7 +200,7 @@ public class UserConfigurationResponse {
         return leftSideUserlist;
     }
 
-    public List<?> getMutedTopics() {
+    public List<List<String>> getMutedTopics() {
         return mutedTopics;
     }
 

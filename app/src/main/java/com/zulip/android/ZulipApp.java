@@ -12,6 +12,10 @@ import android.util.Log;
 import com.crashlytics.android.Crashlytics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -27,15 +31,16 @@ import com.zulip.android.models.Stream;
 import com.zulip.android.networking.AsyncUnreadMessagesUpdate;
 import com.zulip.android.networking.ZulipInterceptor;
 import com.zulip.android.networking.response.UserConfigurationResponse;
+import com.zulip.android.networking.response.events.EventsBranch;
+import com.zulip.android.networking.response.events.GetEventResponse;
 import com.zulip.android.service.ZulipServices;
 import com.zulip.android.util.ZLog;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -46,7 +51,6 @@ import java.util.concurrent.TimeUnit;
 
 import io.fabric.sdk.android.Fabric;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
@@ -79,9 +83,6 @@ public class ZulipApp extends Application {
     private static final String MUTED_TOPIC_KEY = "mutedTopics";
     private ZulipServices zulipServices;
 
-    public Request goodRequest;
-    public Request badRequest;
-
     /**
      * Handler to manage batching of unread messages
      */
@@ -107,6 +108,7 @@ public class ZulipApp extends Application {
      * every couple of seconds
      */
     public final Queue<Integer> unreadMessageQueue = new ConcurrentLinkedQueue<>();
+    public String tester;
 
     public static ZulipApp get() {
         return instance;
@@ -190,9 +192,9 @@ public class ZulipApp extends Application {
     }
 
     private Gson buildGson() {
+        final Gson gson = new Gson();
         return new GsonBuilder()
                 .registerTypeAdapter(UserConfigurationResponse.class, new TypeAdapter<UserConfigurationResponse>() {
-                    final Gson gson = new Gson();
 
                     @Override
                     public void write(JsonWriter out, UserConfigurationResponse value) throws IOException {
@@ -218,6 +220,18 @@ public class ZulipApp extends Application {
                             }
                         }
                         return res;
+                    }
+                })
+                .registerTypeAdapter(GetEventResponse.class, new JsonDeserializer<EventsBranch>() {
+                    @Override
+                    public EventsBranch deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+                        EventsBranch invalid = gson.fromJson(json, EventsBranch.class);
+                        Class<? extends EventsBranch> t = EventsBranch.BranchType.fromRawType(invalid);
+                        if(t != null) {
+                            return gson.fromJson(json, t);
+                        }
+                        Log.w("GSON", "Attempted to deserialize and unregistered EventBranch... See EventBranch.BranchType");
+                        return invalid;
                     }
                 })
                 .create();
@@ -279,22 +293,18 @@ public class ZulipApp extends Application {
         }
     }
 
-    public void addToMutedTopics(JSONArray jsonArray) {
+    public void addToMutedTopics(List<List<String>> mutedTopics) {
         Stream stream;
 
-        if(jsonArray != null) {
-            for (int i = 0; i < jsonArray.length(); i++) {
-                try {
-                    JSONArray mutedTopic = jsonArray.getJSONArray(i);
-                    stream = Stream.getByName(this, mutedTopic.get(0).toString());
-                    mutedTopics.add(stream.getId() + mutedTopic.get(1).toString());
-                } catch (JSONException e) {
-                    Log.e("JSONException", "JSON Is not correct", e);
-                }
+        if(mutedTopics != null) {
+            for (int i = 0; i < mutedTopics.size(); i++) {
+                List<String> mutedTopic = mutedTopics.get(i);
+                stream = Stream.getByName(this, mutedTopic.get(0));
+                this.mutedTopics.add(stream.getId() + mutedTopic.get(1));
             }
         }
         SharedPreferences.Editor editor = settings.edit();
-        editor.putStringSet(MUTED_TOPIC_KEY, new HashSet<>(mutedTopics));
+        editor.putStringSet(MUTED_TOPIC_KEY, new HashSet<>(this.mutedTopics));
         editor.apply();
     }
 

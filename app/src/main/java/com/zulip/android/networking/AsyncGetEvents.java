@@ -12,6 +12,7 @@ import com.zulip.android.models.MessageRange;
 import com.zulip.android.models.Person;
 import com.zulip.android.models.Stream;
 import com.zulip.android.networking.response.UserConfigurationResponse;
+import com.zulip.android.service.ZulipServices;
 import com.zulip.android.util.ZLog;
 
 import org.apache.commons.lang.time.StopWatch;
@@ -26,8 +27,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
+import okhttp3.OkHttpClient;
 import okhttp3.Response;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Retrofit;
 
 /**
  * A background task which asynchronously fetches the updates from the server.
@@ -91,6 +97,7 @@ public class AsyncGetEvents extends Thread {
                 .execute();
         if(response.isSuccessful()) {
             UserConfigurationResponse res = response.body();
+            app.tester = app.getEventQueueId();
             app.setEventQueueId(res.getQueueId());
             app.setLastEventId(res.getLastEventId());
             app.setPointer(res.getPointer());
@@ -112,7 +119,7 @@ public class AsyncGetEvents extends Thread {
                     List<Stream> subscriptions = response.getSubscriptions();
 
                     //todo
-                    app.addToMutedTopics(null);
+                    app.addToMutedTopics(response.getMutedTopics());
 
                     RuntimeExceptionDao<Stream, Object> streamDao = app
                             .getDao(Stream.class);
@@ -173,6 +180,31 @@ public class AsyncGetEvents extends Thread {
                     if (app.getEventQueueId() == null) {
                         register();
                     }
+
+                    new Retrofit.Builder()
+                            .client(new OkHttpClient.Builder().readTimeout(60, TimeUnit.SECONDS)
+                                    .addInterceptor(new ZulipInterceptor())
+                                    .build())
+                            .addConverterFactory(new ZulipServices.ToStringConverterFactory())
+                            .baseUrl(app.getServerURI())
+                            .build()
+                            .create(ZulipServices.class)
+                            .getEvents(null, app.getLastEventId(), app.getEventQueueId())
+                            .enqueue(new Callback<String>() {
+                                @Override
+                                public void onResponse(Call<String> call, retrofit2.Response<String> response) {
+                                    String k = "";
+                                    String kz = "";
+                                }
+
+                                @Override
+                                public void onFailure(Call<String> call, Throwable t) {
+                                    String k  = "";
+                                    String kz  = "";
+                                }
+                            });
+
+
                     request.setProperty("queue_id", app.getEventQueueId());
                     request.setProperty("last_event_id", "" + app.getLastEventId());
                     if (!registeredOrGotEventsThisRun) {

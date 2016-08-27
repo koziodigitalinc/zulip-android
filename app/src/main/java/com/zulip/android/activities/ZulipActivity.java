@@ -1,13 +1,5 @@
 package com.zulip.android.activities;
 
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
-
 import android.animation.Animator;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -42,7 +34,6 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v4.view.animation.FastOutSlowInInterpolator;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SimpleCursorAdapter;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -68,45 +59,41 @@ import android.widget.Toast;
 
 import com.j256.ormlite.android.AndroidDatabaseResults;
 import com.zulip.android.BuildConfig;
+import com.zulip.android.R;
+import com.zulip.android.ZulipApp;
 import com.zulip.android.database.DatabaseHelper;
-import com.zulip.android.models.Emoji;
-import com.zulip.android.filters.NarrowFilterToday;
-import com.zulip.android.models.Message;
-import com.zulip.android.models.MessageType;
 import com.zulip.android.filters.NarrowFilter;
 import com.zulip.android.filters.NarrowFilterAllPMs;
 import com.zulip.android.filters.NarrowFilterPM;
 import com.zulip.android.filters.NarrowFilterSearch;
 import com.zulip.android.filters.NarrowFilterStream;
+import com.zulip.android.filters.NarrowFilterToday;
 import com.zulip.android.filters.NarrowListener;
+import com.zulip.android.gcm.GcmBroadcastReceiver;
 import com.zulip.android.gcm.Notifications;
+import com.zulip.android.models.Emoji;
+import com.zulip.android.models.Message;
+import com.zulip.android.models.MessageType;
 import com.zulip.android.models.Person;
 import com.zulip.android.models.Presence;
 import com.zulip.android.models.PresenceType;
-import com.zulip.android.R;
 import com.zulip.android.models.Stream;
+import com.zulip.android.networking.AsyncGetEvents;
 import com.zulip.android.networking.AsyncSend;
-import com.zulip.android.networking.ZulipInterceptor;
-import com.zulip.android.networking.response.UserConfigurationResponse;
-import com.zulip.android.service.ZulipServices;
+import com.zulip.android.networking.AsyncStatusUpdate;
+import com.zulip.android.networking.ZulipAsyncPushTask;
 import com.zulip.android.util.AnimationHelper;
 import com.zulip.android.util.SwipeRemoveLinearLayout;
 import com.zulip.android.util.ZLog;
-import com.zulip.android.ZulipApp;
-import com.zulip.android.gcm.GcmBroadcastReceiver;
-import com.zulip.android.networking.AsyncGetEvents;
-import com.zulip.android.networking.AsyncStatusUpdate;
-import com.zulip.android.networking.ZulipAsyncPushTask;
 
 import org.json.JSONObject;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * The main Activity responsible for holding the {@link MessageListFragment} which has the list to the
@@ -157,6 +144,7 @@ public class ZulipActivity extends BaseActivity implements
     private AutoCompleteTextView topicActv;
     private AutoCompleteTextView messageEt;
     private TextView textView;
+    private ImageView attachBtn;
     private ImageView sendBtn;
     private ImageView togglePrivateStreamBtn;
     private Notifications notifications;
@@ -173,6 +161,7 @@ public class ZulipActivity extends BaseActivity implements
             abortBroadcast();
         }
     };
+
 
     @Override
     public void removeChatBox(boolean animToRight) {
@@ -300,6 +289,7 @@ public class ZulipActivity extends BaseActivity implements
         messageEt = (AutoCompleteTextView) findViewById(R.id.message_et);
         textView = (TextView) findViewById(R.id.textView);
         sendBtn = (ImageView) findViewById(R.id.send_btn);
+        attachBtn = (ImageView) findViewById(R.id.attach_btn);
         togglePrivateStreamBtn = (ImageView) findViewById(R.id.togglePrivateStream_btn);
         mutedTopics = new ArrayList<>();
         drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -426,6 +416,12 @@ public class ZulipActivity extends BaseActivity implements
                 sendMessage();
             }
         });
+        attachBtn.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v)(
+                    attachImage();
+                    )
+        });
         composeStatus = (LinearLayout) findViewById(R.id.composeStatus);
         setUpAdapter();
         streamActv.setAdapter(streamActvAdapter);
@@ -518,6 +514,9 @@ public class ZulipActivity extends BaseActivity implements
      * Returns a cursor for the combinedAdapter used to suggest Emoji when ':' is typed in the {@link #messageEt}
      * @param emoji A string to search in the existing database
      */
+    public void attachImage(){
+        
+    }
     private Cursor makeEmojiCursor(CharSequence emoji)
             throws SQLException {
         if (emoji == null) {

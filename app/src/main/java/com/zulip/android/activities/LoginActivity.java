@@ -195,7 +195,6 @@ public class LoginActivity extends BaseActivity implements View.OnClickListener,
         mServerEditText.setText(serverUri.toString());
         mServerEditText.setEnabled(false);
         ((ZulipApp) getApplication()).setServerURL(serverUri.toString());
-//        AsyncGetBackends asyncGetBackends = new AsyncGetBackends(ZulipApp.get());
 
         getServices()
                 .getAuthBackends()
